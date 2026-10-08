@@ -1,6 +1,6 @@
 ﻿<div align="center">
 
-# 🦷 Pediatric Smart Toothbrush
+#  Pediatric Smart Toothbrush
 
 ### *A Real-Time Embedded Brushing Feedback System for Children*
 
@@ -32,7 +32,7 @@
 
 ---
 
-## 📸 Prototype
+##  Prototype
 
 <div align="center">
 
@@ -47,7 +47,7 @@
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Motivation and Problem Statement](#-motivation--problem-statement)
 - [Research Overview](#-research-overview)
@@ -64,7 +64,7 @@
 
 ---
 
-## 🦷 Motivation and Problem Statement
+##  Motivation and Problem Statement
 
 Dental caries is the **most common chronic disease in children worldwide**, with nearly **500 million children** suffering from untreated tooth decay in their primary teeth. Poor brushing technique — including incorrect brush angle, excessive or insufficient pressure, and insufficient brush duration — is a primary driver.
 
@@ -87,9 +87,9 @@ Dental caries is the **most common chronic disease in children worldwide**, with
 
 ---
 
-## 📄 Research Overview
+##  Research Overview
 
-> 📖 **Full Paper:** [docs/research_paper.md](docs/research_paper.md)
+>  **Full Paper:** [docs/research_paper.md](docs/research_paper.md)
 >
 > **Published Title:** *"A Smart Pediatric Toothbrush with Embedded Force and Orientation Sensing for Real-Time Brushing Feedback"*
 >
@@ -106,7 +106,7 @@ Dental caries is the **most common chronic disease in children worldwide**, with
 
 ---
 
-## 🏗 System Architecture
+##  System Architecture
 
 ```mermaid
 flowchart TB
@@ -170,7 +170,7 @@ OLED Update         -->  "Pitch: XX.XX | Force: X.XX N"
 
 ---
 
-## 🔧 Hardware
+##  Hardware
 
 ### Bill of Materials
 
@@ -224,9 +224,9 @@ This approach avoids a fixed-value pulldown resistor and allows reliable reading
 
 ---
 
-## 💻 Firmware Deep Dive
+##  Firmware Deep Dive
 
-> 📁 **Source:** [`firmware/brushFinish/brushFinish.ino`](firmware/brushFinish/brushFinish.ino)
+> **Source:** [`firmware/brushFinish/brushFinish.ino`](firmware/brushFinish/brushFinish.ino)
 
 ### Libraries Required
 
@@ -314,7 +314,7 @@ The MIT App Inventor companion app communicates via Classic Bluetooth (SPP):
 
 ---
 
-## 🧪 Sensing Algorithms
+## Sensing Algorithms
 
 ### 1. Orientation Estimation — Madgwick AHRS
 
@@ -347,7 +347,7 @@ Pipeline:
 
 ---
 
-## 📊 Experimental Results
+##  Experimental Results
 
 ### Force Sensor Calibration
 
@@ -389,7 +389,7 @@ Measured from sensor event → LED actuation:
 
 ---
 
-## 📁 Repository Structure
+##  Repository Structure
 
 ```
 pediatric-smart-toothbrush/
@@ -422,7 +422,7 @@ pediatric-smart-toothbrush/
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -477,15 +477,15 @@ The MIT App Inventor app allows caregivers to:
 
 ---
 
-## 🏛 Patent Documentation
+##  Patent Documentation
 
 This project is accompanied by design patent documentation covering the physical design and form factor of the embedded sensing handle.
 
-> 📄 **[View Design Patent Documentation](patent/design_patent.pdf)**
+>  **[View Design Patent Documentation](patent/design_patent.pdf)**
 
 ---
 
-## 📚 Discussion and Limitations
+##  Discussion and Limitations
 
 ### Engineering Tradeoff: FSR vs. Load Cell
 
@@ -514,18 +514,17 @@ This project is accompanied by design patent documentation covering the physical
 
 ---
 
-## 👥 Authors and Contributors
+##  Authors and Contributors
 
 | Name | Role | Institution |
 |------|------|-------------|
-| **Sabhyata Soni** | Co-Author | Dept. of EEE, UIET, Panjab University, Chandigarh |
 | **Mohammed Talha** | Co-Author | Dept. of EEE, UIET, Panjab University, Chandigarh |
 | **Md Sulaiman Qamar** | Co-Author | Dept. of EEE, UIET, Panjab University, Chandigarh |
-| **Ishi Soni** | Co-Author | Dept. of EEE, UIET, Panjab University, Chandigarh |
+
 
 ---
 
-## 📖 References
+##  References
 
 1. Q. Yang et al., "OpenBrush: An open-source manual toothbrush for force and motion sensing," *Proc. UbiComp Companion*, 2025.
 2. D. Jacobson et al., "Evaluating child toothbrushing behavior changes associated with a mobile game app," *Pediatr. Dent.*, vol. 41, no. 4, 2019.
@@ -534,11 +533,11 @@ This project is accompanied by design patent documentation covering the physical
 5. M. Akhtaruzzaman, "Force-sensitive classic toothbrush: System analysis, design, and simulation," *Electrica*, vol. 21, no. 2, 2021.
 6. H. Li and L. Jing, "3D Monitoring of Toothbrushing Regions and Force Using Multimodal Sensors and Unity," *IEEE Access*, vol. 11, 2023.
 
-> 📖 Full reference list in [docs/research_paper.md](docs/research_paper.md#references)
+>  Full reference list in [docs/research_paper.md](docs/research_paper.md#references)
 
 ---
 
-## 📜 License
+##  License
 
 This project is released under the [MIT License](LICENSE). Design patent documentation is proprietary.
 
