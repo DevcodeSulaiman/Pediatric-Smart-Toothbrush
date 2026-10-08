@@ -43,7 +43,7 @@
 
 </div>
 
-> 📹 **[Watch Demo Video →](assets/video/demo.mp4)**
+> 📹 **Demo video available** — the 93 MB recording is not hosted in this repository due to GitHub file size limits. Upload it to the [Releases](../../releases) page or YouTube and link here.
 
 ---
 
@@ -551,3 +551,4 @@ This project is released under the [MIT License](LICENSE). Design patent documen
 *Built at the Department of EEE, UIET, Panjab University, Chandigarh*
 
 </div>
+
