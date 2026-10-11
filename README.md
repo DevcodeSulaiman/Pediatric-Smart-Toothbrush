@@ -16,17 +16,17 @@
 
 <br/>
 
-| 🎯 Target | 👶 Children (ages 5–12) |
+|  Target | Children (ages 5–12) |
 |-----------|------------------------|
-| 🧠 Core MCU | ESP32 WROOM-32 |
-| 📡 Sensing | IMU (MPU9255) + FSR |
-| 🔄 AHRS | Madgwick Filter @ 100 Hz |
-| ⚡ Force Threshold | 2.0 N (fingertip proxy) |
-| 📐 Angle Target | 45° ± 15° (gingival angle) |
-| 📱 Companion App | MIT App Inventor (Bluetooth) |
-| ⏱ Session Timer | 2 minutes |
-| ⏱ System Latency | 68 ms ± 12 ms |
-| 📐 Mean Angle Error | 2.3° ± 0.8° |
+| Core MCU | ESP32 WROOM-32 |
+| Sensing | IMU (MPU9255) + FSR |
+| AHRS | Madgwick Filter @ 100 Hz |
+| Force Threshold | 2.0 N (fingertip proxy) |
+| Angle Target | 45° ± 15° (gingival angle) |
+| Companion App | MIT App Inventor (Bluetooth) |
+| Session Timer | 2 minutes |
+| System Latency | 68 ms ± 12 ms |
+| Mean Angle Error | 2.3° ± 0.8° |
 
 </div>
 
@@ -43,7 +43,7 @@
 
 </div>
 
-> 📹 **Demo video available** — the 93 MB recording is not hosted in this repository due to GitHub file size limits. Upload it to the [Releases](../../releases) page or YouTube and link here.
+> **Demo video available** — the 93 MB recording is not hosted in this repository due to GitHub file size limits. Upload it to the [Releases](../../releases) page or YouTube and link here.
 
 ---
 
@@ -516,10 +516,10 @@ This project is accompanied by design patent documentation covering the physical
 
 ##  Authors and Contributors
 
-| Name | Role | Institution |
-|------|------|-------------|
-| **Mohammed Talha** | Co-Author | Dept. of EEE, UIET, Panjab University, Chandigarh |
-| **Md Sulaiman Qamar** | Co-Author | Dept. of EEE, UIET, Panjab University, Chandigarh |
+| Name | Role | Institution | Work |
+|------|------|-------------|------|
+| **Mohammed Talha** | Co-Author | Dept. of EEE, UIET, Panjab University, Chandigarh | Responsible for development of the low level feedback and filters for the ESP32 |
+| **Md Sulaiman Qamar** | Co-Author | Dept. of EEE, UIET, Panjab University, Chandigarh | Responsible for BLE and app integration |
 
 
 ---
