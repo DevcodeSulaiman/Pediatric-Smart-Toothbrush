@@ -226,67 +226,232 @@ This approach avoids a fixed-value pulldown resistor and allows reliable reading
 
 ##  Firmware Deep Dive
 
-> **Source:** [`firmware/brushFinish/brushFinish.ino`](firmware/brushFinish/brushFinish.ino)
+> **Source:** [`firmware/sPT.ino`](firmware/sPT.ino)
 
 ### Libraries Required
 
 Install via Arduino Library Manager:
 - `Adafruit SSD1306`
 - `Adafruit GFX Library`
-- `MadgwickAHRS` (by arduino-libraries)
 - `DFRobotDFPlayerMini`
 
 ### Key Constants and Thresholds
 
-```cpp
-const float FORCE_THRESHOLD_N   = 2.0f;   // Excessive force threshold (Newtons)
-const float TARGET_ANGLE        = 45.0;    // Target gingival angle (degrees)
-const float ANGLE_TOLERANCE     = 15.0;    // +/-15 degree acceptable window
-const unsigned long ANGLE_HOLD_THRESHOLD = 500; // ms before buzzer triggers
-const unsigned long brushDuration = 120000;     // 2-minute session (ms)
+OLED, Bluetooth & DFPlayer Audio Constants
 
-const unsigned long IMU_INTERVAL_US = 10000; // 100 Hz IMU loop
-const unsigned long UI_INTERVAL_MS  = 80;    // 12.5 Hz UI loop
+```cpp
+// ---------- OLED ----------
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 32
+#define OLED_ADDR 0x3C
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+// ---------- Bluetooth + DFPlayer ----------
+BluetoothSerial SerialBT;
+HardwareSerial myDFSerial(2); // UART2 for DFPlayer
+DFRobotDFPlayerMini dfPlayer;
+int currentVolume = 20;
+const int MAX_VOLUME = 30;
+const int MIN_VOLUME = 0;
+int currentBrushTrack = 1;
 ```
 
-### Execution Architecture — Non-Blocking Dual Loop
-
-The firmware uses a non-blocking **dual-frequency architecture** to separate high-frequency sensor fusion from lower-frequency UI updates:
+GPIO Pin Mapping, I2C/UART Buses & IMU Registers
 
 ```cpp
-void loop() {
-  // HIGH FREQUENCY: IMU @ 100 Hz (strictly timed with micros())
-  if (mpu_started && (micros() - lastIMUUpdate >= IMU_INTERVAL_US)) {
-    filter.updateIMU(gx, gy, gz, ax, ay, az);  // 6-DOF Madgwick update
-  }
+// ---------- FSR Pins ----------
+const int CHARGE_PIN = 25;
+const int ADC_PIN = 35;
+const int FSR_LED_PIN = 4;
 
-  // LOW FREQUENCY: UI, Force, Bluetooth @ 12.5 Hz
-  if (millis() - lastUIUpdate >= UI_INTERVAL_MS) {
-    handleBTCommands();           // Bluetooth volume/track control
-    float F = getForceN();        // FSR reading
-    float adjPitch = filter.getPitch() - pitchOffset;
-    checkBrushingAngle(adjPitch); // Buzzer logic
-    // Update OLED with current readings
-  }
+// ---------- MPU9255 Registers ----------
+#define MPU_ADDR 0x68
+#define PWR_MGMT_1 0x6B
+#define ACCEL_XOUT_H 0x3B
+
+// ---------- User I/O & Alert Pins ----------
+#define BUTTON_PIN 14
+#define BUZZER_PIN 27
+
+// ---------- Bus & ADC Hardware Init (inside initMPU & setup) ----------
+Wire.begin(21, 22);                          // I2C: SDA = 21, SCL = 22
+myDFSerial.begin(9600, SERIAL_8N1, 16, 17);  // UART2: RX = 16, TX = 17
+analogReadResolution(12);                    // 12-bit ADC (0 - 4095)
+analogSetPinAttenuation(ADC_PIN, ADC_11db);  // Full-scale 0 - 3.3V range
+```
+
+Force Sensing (FSR) Threshold, RC Timing & Piecewise LUT Constants
+
+```cpp
+const float FORCE_THRESHOLD_N = 2.0f;
+
+// Inside readFSRVoltage(): RC Timing Constants
+pinMode(CHARGE_PIN, OUTPUT);
+digitalWrite(CHARGE_PIN, HIGH);
+delay(2);                   // 2 ms capacitor saturation to 3.3V
+
+pinMode(CHARGE_PIN, INPUT); // High-Z discharge state
+delayMicroseconds(901);     // 901 µs fixed RC decay window
+
+// Inside getForceN(): Piecewise LUT Voltage Nodes (at 901 µs)
+float V_0N   = 3.27f; // 0g   (0.0 N)
+float V_0_5N = 2.44f; // 50g  (0.5 N)
+float V_1N   = 1.99f; // 100g (1.0 N)
+float V_2N   = 1.65f; // 200g (2.0 N - Pediatric Alert Threshold)
+float V_4N   = 1.14f; // 400g (4.0 N)
+float V_8N   = 0.54f; // 800g (8.0 N)
+```
+
+IMU Scaling, Madgwick Filter Gains & Brushing Session Thresholds
+
+```cpp
+// ---------- Orientation / Madgwick Params ----------
+#define GYRO_SENS 131.0f    // rawLSB -> deg/s (±250 deg/s range)
+#define ACCEL_SENS 16384.0f // rawLSB -> g     (±2g range)
+float beta = 0.06f;                      // Madgwick quaternion gain (0.02..0.12)
+const float gyroBiasFilterAlpha = 0.02f; // Gyro bias smoothing factor
+const float angleLPFalpha = 0.18f;       // Exponential LPF alpha for display/checks
+
+// ---------- Brushing Geometry & Timer Thresholds ----------
+const float TARGET_ANGLE = 45.0f;                 // Target brushing angle (deg)
+const float ANGLE_TOLERANCE = 15.0f;              // Acceptable window (±15 deg)
+const unsigned long ANGLE_HOLD_THRESHOLD = 500;   // Out-of-bounds debounce (ms)
+const unsigned long brushDuration = 120000;       // 2-minute brushing timer (ms)
+
+// ---------- Quaternion & Filter State Globals ----------
+volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;
+float gyroBiasX = 0, gyroBiasY = 0, gyroBiasZ = 0;
+float pitchOffset = 0.0f;
+float pitchFiltered = 0.0f;
+```
+
+### Execution Architecture
+
+## Firmware Overview
+
+### FSR Force Sensing (RC Timing)
+
+Instead of a standard voltage divider read, the ESP32 uses `CHARGE_PIN` (GPIO 25) to saturate an RC network for 2 ms, switches the pin to high-impedance `INPUT` mode, waits exactly 901 µs for the capacitor to discharge through the FSR, and samples the decayed voltage on `ADC_PIN` (GPIO 35).
+
+Because FSR resistance vs. force follows an inverse power law, a 5-segment piecewise linear interpolation maps the non-linear decay voltage (`Vt`) to Newtons:
+
+```cpp
+float readFSRVoltage() {
+  pinMode(CHARGE_PIN, OUTPUT);
+  digitalWrite(CHARGE_PIN, HIGH);
+  delay(2); // Fully saturate capacitor to 3.3V
+
+  pinMode(CHARGE_PIN, INPUT); // High impedance mode
+  delayMicroseconds(901);     // Exact calculated discharge time
+
+  int adc = analogRead(ADC_PIN);
+  return (adc / 4095.0f) * 3.3f;
 }
+
+float getForceN() {
+    float Vt = readFSRVoltage();
+
+    // LUT for 2.0N threshold at 901µs
+    float V_0N   = 3.27f; // 0g
+    float V_0_5N = 2.44f; // 50g
+    float V_1N   = 1.99f; // 100g
+    float V_2N   = 1.65f; // 200g (Threshold)
+    float V_4N   = 1.14f; // 400g
+    float V_8N   = 0.54f; // 800g
+    // ... [Piecewise interpolation between adjacent voltage nodes] ...
+    else if (Vt < V_1N && Vt >= V_2N) {
+        F = 1.0f + (2.0f - 1.0f) * ((V_1N - Vt) / (V_1N - V_2N));
+    }
 ```
 
-### Calibration Sequence
+### State Gate and Calibration
 
-On button press, the system performs a **1-second Madgwick convergence calibration**:
+The main `loop()` uses `mpu_started` as a state gate. While `mpu_started == false`, the firmware polls Bluetooth, updates the FSR LED, and waits for `BUTTON_PIN` (LOW).
+
+Once pressed, it executes a blocking 100-sample calibration routine (~2.5 seconds) that simultaneously establishes:
+
+- the static accelerometer zero-reference (`pitchOffset`)
+- the 3-axis gyroscope zero-rate offsets (`gyroBiasX/Y/Z`)
 
 ```cpp
-// Feed ~200 IMU samples to Madgwick filter for convergence
-unsigned long calibStart = millis();
-while (millis() - calibStart < 1000) {
-    readRawMPU(ax, ay, az, gx, gy, gz);
-    filter.updateIMU(gx, gy, gz, ax, ay, az);
-    delay(5);
-}
-pitchOffset = filter.getPitch();  // Capture current angle as zero reference
+const int samples = 100;
+        float sumPitch = 0;
+        int validSamples = 0;
+        float sumGx = 0, sumGy = 0, sumGz = 0;
+
+        for (int i = 0; i < samples; i++) {
+          float ax, ay, az, gx, gy, gz;
+          if (readRawMPU(ax, ay, az, gx, gy, gz)) {
+            float accelPitch = atan2f(ax, az) * 180.0f / PI;
+            sumPitch += accelPitch;
+            validSamples++;
+
+            sumGx += gx;
+            sumGy += gy;
+            sumGz += gz;
+          }
+          // ... [OLED progress dots] ...
+          delay(25);
+        }
+
+        if (validSamples > 0) {
+          pitchOffset = sumPitch / validSamples;
+          gyroBiasX = sumGx / validSamples;
+          gyroBiasY = sumGy / validSamples;
+          gyroBiasZ = sumGz / validSamples;
+        }
+        q0 = 1.0f; q1 = q2 = q3 = 0.0f;
 ```
 
-This allows the toothbrush to be calibrated to **any initial holding position** — all subsequent angle readings are relative to this baseline.
+### Orientation Estimation (Active Brushing)
+
+During active brushing (`mpu_started == true`), each pass of the loop calculates the elapsed time step `dt`, subtracts the calibrated gyro biases, converts angular rates to rad/s, and updates the quaternion state `[q0, q1, q2, q3]` via gradient descent (`MadgwickAHRSupdateIMU`).
+
+Rather than extracting standard Euler angles via `arcsin` (which suffers from gimbal lock at ±90°), the code transforms the Earth-frame gravity vector `[0, 0, 1]` into the sensor body frame (`quaternionToGravity`) and computes continuous ±180° pitch in the X-Z plane via `atan2f(g_x, g_z)`:
+
+```cpp
+// subtract gyro bias and convert to rad/s
+    float gx = (gx_deg - gyroBiasX) * (PI / 180.0f);
+    float gy = (gy_deg - gyroBiasY) * (PI / 180.0f);
+    float gz = (gz_deg - gyroBiasZ) * (PI / 180.0f);
+
+    // Run Madgwick IMU update
+    MadgwickAHRSupdateIMU(gx, gy, gz, ax, ay, az, dt);
+
+    // Get gravity vector from quaternion
+    float g_x, g_y, g_z;
+    quaternionToGravity(g_x, g_y, g_z);
+
+    // Continuous ±180° pitch using atan2(gx, gz)
+    float pitch360 = atan2f(g_x, g_z) * 180.0f / PI;
+
+    // apply user pitch offset and normalize to -180..180
+    float adjPitch = pitch360 - pitchOffset;
+    if (adjPitch > 180.0f) adjPitch -= 360.0f;
+    if (adjPitch < -180.0f) adjPitch += 360.0f;
+
+    // Apply a simple low-pass filter to reduce jitter on display and checks
+    pitchFiltered = (angleLPFalpha * adjPitch) + ((1.0f - angleLPFalpha) * pitchFiltered);
+```
+
+### Loop Timing
+
+In active mode, the super-loop executes sequentially on a single ESP32 core with an effective cycle time of ~30–35 ms (~28–33 Hz):
+
+| Step | Description | Approx. time |
+|---|---|---|
+| `handleBTCommands()` | Polls UART/BT buffer | ~0 ms (unless a command triggers a 30 ms UART guard delay) |
+| `getForceN()` | Executes the RC charge/discharge cycle | ~2.9 ms |
+| `readRawMPU()` + `MadgwickAHRSupdateIMU()` | 14-byte I2C burst read + floating-point quaternion update | ~1.5 ms |
+| `display.display()` | Pushes the 512-byte (128x32) buffer over I2C | ~6–10 ms |
+| `checkBrushingAngle()` & timer verification | Evaluates `fabs(pitchFiltered - 2.0f)` against `TARGET_ANGLE ± ANGLE_TOLERANCE` and checks `millis() - brushStartTime >= brushDuration` | — |
+| `delay(20)` | Fixed pacing delay at the end of `loop()` | 20 ms |
+
+## Known Limitations
+
+- **Post-calibration quaternion convergence lag:** At the end of calibration, the quaternion state is hardcoded to identity (`q0 = 1.0f; q1 = q2 = q3 = 0.0f;`), which corresponds to a 0° gravity vector (`g_x = 0`, `g_z = 1`). If the user holds the brush at a non-zero tilt during calibration (say 30°), `pitchOffset` immediately captures 30°, but `pitch360` starts at 0° and takes several seconds (governed by `beta = 0.06f` and `angleLPFalpha = 0.18f`) to converge to 30°, so `adjPitch` reads 0°.
+- **Hardcoded 2.0f angle offset:** The call `checkBrushingAngle(fabs(pitchFiltered - 2.0f));` means the buzzer alarm actually evaluates an asymmetric window of +32° to +62° (for positive pitch) and -28° to -58° (for negative pitch) rather than a symmetric 30° to 60°.
+- **±180° wrap-around on the LPF:** Because `pitchFiltered` applies a linear exponential moving average after `adjPitch` is wrapped to [-180, 180], rotating the brush across the ±180° boundary will cause `pitchFiltered` to briefly sweep through 0° rather than wrapping cleanly across the boundary.
 
 ### Force Estimation — Piecewise Linear Interpolation
 
