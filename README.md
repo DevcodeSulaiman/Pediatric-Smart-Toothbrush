@@ -43,24 +43,23 @@
 
 </div>
 
-> **Demo video available** — the 93 MB recording is not hosted in this repository due to GitHub file size limits. Upload it to the [Releases](../../releases) page or YouTube and link here.
-
 ---
 
 ##  Table of Contents
 
-- [Motivation and Problem Statement](#-motivation--problem-statement)
-- [Research Overview](#-research-overview)
-- [System Architecture](#-system-architecture)
-- [Hardware](#-hardware)
-- [Firmware Deep Dive](#-firmware-deep-dive)
-- [Sensing Algorithms](#-sensing-algorithms)
-- [Experimental Results](#-experimental-results)
-- [Repository Structure](#-repository-structure)
-- [Getting Started](#-getting-started)
-- [Patent Documentation](#-patent-documentation)
-- [Authors and Contributors](#-authors--contributors)
-- [References](#-references)
+- [Motivation and Problem Statement](#--motivation-and-problem-statement)
+- [Research Overview](#--research-overview)
+- [System Architecture](#--system-architecture)
+- [Hardware](#--hardware)
+- [Firmware Deep Dive](#--firmware-deep-dive)
+- [Sensing Algorithms](#--sensing-algorithms)
+- [Experimental Results](#--experimental-results)
+- [Repository Structure](#--repository-structure)
+- [Getting Started](#--getting-started)
+- [Patent Documentation](#--patent-documentation)
+- [Discussion and Limitation](#--discussion-and-limitation)
+- [Authors and Contributors](#--authors-and-contributors)
+- [References](#--references)
 
 ---
 
