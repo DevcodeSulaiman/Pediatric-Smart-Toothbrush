@@ -47,19 +47,19 @@
 
 ##  Table of Contents
 
-- [Motivation and Problem Statement](#--motivation-and-problem-statement)
-- [Research Overview](#--research-overview)
-- [System Architecture](#--system-architecture)
-- [Hardware](#--hardware)
-- [Firmware Deep Dive](#--firmware-deep-dive)
-- [Sensing Algorithms](#--sensing-algorithms)
-- [Experimental Results](#--experimental-results)
-- [Repository Structure](#--repository-structure)
-- [Getting Started](#--getting-started)
-- [Patent Documentation](#--patent-documentation)
-- [Discussion and Limitation](#--discussion-and-limitation)
-- [Authors and Contributors](#--authors-and-contributors)
-- [References](#--references)
+- [Motivation and Problem Statement](#-motivation-and-problem-statement)
+- [Research Overview](#-research-overview)
+- [System Architecture](#-system-architecture)
+- [Hardware](#hardware)
+- [Firmware Deep Dive](#firmware-deep-dive)
+- [Sensing Algorithms](#sensing-algorithms)
+- [Experimental Results](#experimental-results)
+- [Repository Structure](#repository-structure)
+- [Getting Started](#getting-started)
+- [Patent Documentation](#patent-documentation)
+- [Discussion and Limitation](#discussion-and-limitation)
+- [Authors and Contributors](#-authors-and-contributors)
+- [References](#references)
 
 ---
 
